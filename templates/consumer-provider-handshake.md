@@ -4,7 +4,7 @@
 
 | | Provider | Consumer |
 |---|---|---|
-| **Tên nhóm** | Nhóm 5 (Access Gate) | Nhóm 14 (Core Business) |
+| **Tên nhóm** | team-gate (Access Gate) | team-core (Core Business) |
 | **Service** | Smart Campus Access Gate | Smart Campus Core Business |
 | **Contract file** | `contracts/team-gate.openapi.yaml` | – |
 
