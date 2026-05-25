@@ -23,10 +23,25 @@ jobs:
         run: npx @redocly/cli lint contracts/openApi.yaml 2>&1 | tee reports/contract-lint-report.txt || true
 
       - name: Start Prism mock server
-        run: nohup ./node_modules/.bin/prism mock contracts/openApi.yaml --port 4010 > prism.log 2>&1 &
+        run: |
+          nohup ./node_modules/.bin/prism mock contracts/openApi.yaml --port 4010 --host 0.0.0.0 > prism.log 2>&1 &
+          echo "Prism PID=$!"
 
       - name: Wait for mock server
-        run: npx wait-on http://localhost:4010/health --timeout 30000
+        run: |
+          echo "Waiting for Prism to start..."
+          for i in $(seq 1 30); do
+            sleep 2
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:4010/health 2>/dev/null || echo "000")
+            echo "Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then
+              echo "Prism is ready!"
+              exit 0
+            fi
+          done
+          echo "Prism failed to start. Log:"
+          cat prism.log
+          exit 1
 
       - name: Run Newman on mock environment
         run: npm run test:mock
