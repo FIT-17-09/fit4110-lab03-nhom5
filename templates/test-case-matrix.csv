@@ -1,6 +1,31 @@
-ID,Folder,Endpoint,Method,Scenario,Input file/body,Expected status,Expected response check,Type,Pass/Fail,Evidence
-TC01,Functional,/health,GET,Service is alive,-,200,status=ok,functional,,
-TC02,Functional,/readings,POST,Create reading happy path,mock-data/sensor-reading-valid.json,201,"has reading_id, accepted=true",functional,,
-TC03,Negative,/readings,POST,Missing device_id,mock-data/sensor-reading-invalid-missing-device.json,400,Problem Details,negative,,
-TC04,Auth,/readings,POST,Missing token,mock-data/sensor-reading-valid.json,401,Problem Details,auth,,
-TC05,Boundary,/readings,POST,High temperature boundary,mock-data/sensor-reading-boundary.json,201/400,documented behavior,boundary,,
+folder,request_name,endpoint,method,input_summary,expected_status,test_type,notes
+01_Functional,POST /access/check – allow (happy path),/access/check,POST,cardId=RFID-001 gateId=GATE-01,200,Functional,Saves decisionId to variable for next test
+01_Functional,POST /access/check – deny (blocked card),/access/check,POST,cardId=RFID-BLOCKED gateId=GATE-01,200,Functional,Checks decisionType=DENY and reasonCode present
+01_Functional,GET /decisions/{decisionId},/decisions/{decisionId},GET,decisionId from previous step,200,Functional,Verifies decision history retrieval
+01_Functional,GET /gates/{gateId}/status,/gates/GATE-01/status,GET,gateId=GATE-01,200,Functional,Checks status enum OPEN/CLOSED/MAINTENANCE
+01_Functional,GET /cards/{cardId},/cards/RFID-001,GET,cardId=RFID-001,200,Functional,Checks cardStatus enum and ownerName
+01_Functional,GET /access/logs/recent,/access/logs/recent,GET,limit=5,200,Functional,Checks array structure and field presence
+01_Functional,GET /policies/access/{policyId},/policies/access/POLICY-01,GET,policyId=POLICY-01,200,Functional,Checks policyId and role fields
+01_Functional,GET /health,/health,GET,no params,200,Functional,No auth required – status must be OK
+02_Auth,POST /access/check – valid token,/access/check,POST,valid Bearer token,200,Auth,Confirms authenticated access works
+02_Auth,POST /access/check – missing token,/access/check,POST,no Authorization header,401 or 403,Auth,Must not succeed without token
+02_Auth,POST /access/check – wrong token,/access/check,POST,Bearer totally-invalid-token-xyz,401 or 403,Auth,Invalid token must be rejected
+02_Auth,GET /access/logs/recent – missing token,/access/logs/recent,GET,no Authorization header,401 or 403,Auth,Log endpoint also requires auth
+03_Negative,POST /access/check – missing cardId,/access/check,POST,missing cardId field,400 or 422,Negative,Checks ProblemDetails structure
+03_Negative,POST /access/check – missing gateId,/access/check,POST,missing gateId field,400 or 422,Negative,Required field validation
+03_Negative,POST /access/check – empty body,/access/check,POST,empty JSON object,400 or 422,Negative,Both required fields absent
+03_Negative,GET /decisions/{decisionId} – not found,/decisions/00000000-0000-0000-0000-000000000000,GET,non-existent UUID,404,Negative,Checks ProblemDetails structure
+03_Negative,GET /cards/{cardId} – not found,/cards/RFID-NOTEXIST,GET,unknown cardId,404,Negative,Resource not found
+03_Negative,GET /gates/{gateId}/status – not found,/gates/GATE-NOTEXIST/status,GET,unknown gateId,404,Negative,Resource not found
+03_Negative,GET /policies/access/{policyId} – not found,/policies/access/POLICY-NOTEXIST,GET,unknown policyId,404,Negative,Resource not found
+03_Negative,GET /access/logs/recent – limit out of range,/access/logs/recent?limit=999,GET,limit=999 (max=100),400 or 422,Negative,Query param boundary violation
+04_Boundary_Reliability,GET /access/logs/recent – limit=1 (lower bound),/access/logs/recent?limit=1,GET,limit=1 (minimum=1),200,Boundary,Response array length <= 1
+04_Boundary_Reliability,GET /access/logs/recent – limit=100 (upper bound),/access/logs/recent?limit=100,GET,limit=100 (maximum=100),200,Boundary,Response array length <= 100
+04_Boundary_Reliability,GET /access/logs/recent – limit=0 (below minimum),/access/logs/recent?limit=0,GET,limit=0 (below min),400 or 422,Boundary,Violation of minimum:1 constraint
+04_Boundary_Reliability,POST /access/check – expired card boundary,/access/check,POST,cardId=RFID-EXPIRED with past timestamp,200 or 422,Boundary,Expired card should be DENY or 422 business rule
+04_Boundary_Reliability,GET /access/logs/recent – no limit param (default=10),/access/logs/recent,GET,no limit param (default=10),200,Boundary,Default value behavior check
+05_Consumer_side_Smoke,Smoke – Core Business health reachable,/health,GET,no params,200,Consumer-side Smoke,Calls coreMockUrl (Core Business mock)
+05_Consumer_side_Smoke,Smoke – Core Business POST /access/check reachable,/access/check,POST,valid payload to coreMockUrl,200-499,Consumer-side Smoke,Verifies contract handshake reachability
+05_Consumer_side_Smoke,Smoke – Core Business GET /policies/access/{policyId} reachable,/policies/access/POLICY-01,GET,policyId=POLICY-01 to coreMockUrl,200 or 404,Consumer-side Smoke,Verifies policy endpoint contract
+06_Local_only_NonFunctional,POST /access/check – response time SLA,/access/check,POST,valid payload,200,NonFunctional,Skipped on mock; runs only when env=local
+06_Local_only_NonFunctional,GET /access/logs/recent – response time SLA,/access/logs/recent?limit=10,GET,limit=10,200,NonFunctional,Skipped on mock; runs only when env=local

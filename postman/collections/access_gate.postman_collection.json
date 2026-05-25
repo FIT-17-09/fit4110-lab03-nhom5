@@ -1,0 +1,1258 @@
+{
+  "info": {
+    "name": "FIT4110 Lab03 – team-gate",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "team-gate"
+  },
+  "variable": [],
+  "item": [
+    {
+      "name": "01_Functional",
+      "item": [
+        {
+          "name": "POST /access/check – allow (happy path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has decisionType ALLOW', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.decisionType).to.eql('ALLOW');",
+                  "});",
+                  "",
+                  "pm.test('allow field is true', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.allow).to.be.true;",
+                  "});",
+                  "",
+                  "pm.test('decisionId is a UUID', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.decisionId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);",
+                  "});",
+                  "",
+                  "pm.variables.set('savedDecisionId', pm.response.json().decisionId);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-001\",\n  \"gateId\": \"GATE-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "POST /access/check – deny (blocked card)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "// NOTE: Prism mock luon tra example ALLOW. Tren local service card bi block se tra DENY.",
+                  "pm.test('[mock] Decision returned with valid decisionType', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(['ALLOW', 'DENY']).to.include(json.decisionType);",
+                  "});",
+                  "pm.test('[mock] decisionId is a UUID', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.decisionId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);",
+                  "});",
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('[local] Blocked card returns DENY', function () {",
+                  "    pm.expect(pm.response.json().decisionType).to.eql('DENY');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-BLOCKED\",\n  \"gateId\": \"GATE-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "GET /decisions/{decisionId}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('decisionType is ALLOW or DENY', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(['ALLOW', 'DENY']).to.include(json.decisionType);",
+                  "});",
+                  "",
+                  "pm.test('decisionId is a UUID', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.decisionId).to.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/decisions/{{savedDecisionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["decisions", "{{savedDecisionId}}"]
+            }
+          }
+        },
+        {
+          "name": "GET /gates/{gateId}/status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('status is valid enum value', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(['OPEN', 'CLOSED', 'MAINTENANCE']).to.include(json.status);",
+                  "});",
+                  "",
+                  "pm.test('gateId matches requested gate', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.gateId).to.eql('GATE-01');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gates/GATE-01/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["gates", "GATE-01", "status"]
+            }
+          }
+        },
+        {
+          "name": "GET /cards/{cardId}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('cardStatus is valid enum', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(['ACTIVE', 'BLOCKED', 'EXPIRED']).to.include(json.cardStatus);",
+                  "});",
+                  "",
+                  "pm.test('ownerName is present', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.ownerName).to.be.a('string').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cards/RFID-001",
+              "host": ["{{baseUrl}}"],
+              "path": ["cards", "RFID-001"]
+            }
+          }
+        },
+        {
+          "name": "GET /access/logs/recent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is an array', function () {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Each log has required fields', function () {",
+                  "  const logs = pm.response.json();",
+                  "  if (logs.length > 0) {",
+                  "    const log = logs[0];",
+                  "    pm.expect(log).to.have.property('logId');",
+                  "    pm.expect(log).to.have.property('cardId');",
+                  "    pm.expect(log).to.have.property('gateId');",
+                  "    pm.expect(['IN', 'OUT']).to.include(log.direction);",
+                  "    pm.expect(['ALLOW', 'DENY']).to.include(log.status);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent?limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "logs", "recent"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /policies/access/{policyId}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('policyId is present', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.policyId).to.be.a('string').and.not.empty;",
+                  "});",
+                  "",
+                  "pm.test('role is present', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.role).to.be.a('string').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/policies/access/POLICY-01",
+              "host": ["{{baseUrl}}"],
+              "path": ["policies", "access", "POLICY-01"]
+            }
+          }
+        },
+        {
+          "name": "GET /health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('status is OK', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json.status).to.eql('OK');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02_Auth",
+      "item": [
+        {
+          "name": "POST /access/check – valid token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Authenticated request succeeds (200)', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-001\",\n  \"gateId\": \"GATE-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "POST /access/check – missing token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Missing token returns 401 or 403', function () {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('Error response has ProblemDetails structure', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('status');",
+                  "    pm.expect(json.status).to.be.within(400, 599);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-001\",\n  \"gateId\": \"GATE-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "POST /access/check – wrong token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Prism chi kiem tra co Bearer hay khong, khong validate noi dung token.",
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('[local] Invalid token returns 401 or 403', function () {",
+                  "    pm.expect([401, 403]).to.include(pm.response.code);",
+                  "  });",
+                  "} else {",
+                  "  pm.test('[mock] Prism does not validate token content – skipping', function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer totally-invalid-token-xyz"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-001\",\n  \"gateId\": \"GATE-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "GET /access/logs/recent – missing token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Missing token returns 401 or 403', function () {",
+                  "  pm.expect([401, 403]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "logs", "recent"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03_Negative",
+      "item": [
+        {
+          "name": "POST /access/check – missing cardId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Missing required field returns 400 or 422', function () {",
+                  "  pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test('Error response has ProblemDetails structure', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('title');",
+                  "  // status field co the la 0 tren mock – chi assert tren local",
+                  "  if (pm.environment.get('env') === 'local') {",
+                  "    pm.expect(json.status).to.be.within(400, 599);",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gateId\": \"GATE-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "POST /access/check – missing gateId",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Missing gateId returns 400 or 422', function () {",
+                  "  pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "POST /access/check – empty body",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Empty body returns 400 or 422', function () {",
+                  "  pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "GET /decisions/{decisionId} – not found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('[local] Non-existent decisionId returns 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "  });",
+                  "  pm.test('[local] Error response has ProblemDetails structure', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('status');",
+                  "    pm.expect(json.status).to.be.within(400, 599);",
+                  "  });",
+                  "} else {",
+                  "  pm.test('[mock] Prism returns static example for any path – skipping 404 check', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/decisions/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["decisions", "00000000-0000-0000-0000-000000000000"]
+            }
+          }
+        },
+        {
+          "name": "GET /cards/{cardId} – not found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('[local] Unknown cardId returns 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "  });",
+                  "} else {",
+                  "  pm.test('[mock] Prism returns static example for any cardId – skipping', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cards/RFID-NOTEXIST",
+              "host": ["{{baseUrl}}"],
+              "path": ["cards", "RFID-NOTEXIST"]
+            }
+          }
+        },
+        {
+          "name": "GET /gates/{gateId}/status – not found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('[local] Unknown gateId returns 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "  });",
+                  "} else {",
+                  "  pm.test('[mock] Prism returns static example for any gateId – skipping', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/gates/GATE-NOTEXIST/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["gates", "GATE-NOTEXIST", "status"]
+            }
+          }
+        },
+        {
+          "name": "GET /policies/access/{policyId} – not found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('[local] Unknown policyId returns 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "  });",
+                  "} else {",
+                  "  pm.test('[mock] Prism returns static example for any policyId – skipping', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/policies/access/POLICY-NOTEXIST",
+              "host": ["{{baseUrl}}"],
+              "path": ["policies", "access", "POLICY-NOTEXIST"]
+            }
+          }
+        },
+        {
+          "name": "GET /access/logs/recent – limit out of range",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('limit > 100 returns 400 or 422', function () {",
+                  "  pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent?limit=999",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "logs", "recent"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "999"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04_Boundary_Reliability",
+      "item": [
+        {
+          "name": "GET /access/logs/recent – limit=1 (lower bound)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('limit=1 returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is array with at most 1 item', function () {",
+                  "  const arr = pm.response.json();",
+                  "  pm.expect(arr).to.be.an('array');",
+                  "  pm.expect(arr.length).to.be.at.most(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent?limit=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "logs", "recent"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /access/logs/recent – limit=100 (upper bound)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('limit=100 returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response is array with at most 100 items', function () {",
+                  "  const arr = pm.response.json();",
+                  "  pm.expect(arr).to.be.an('array');",
+                  "  pm.expect(arr.length).to.be.at.most(100);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent?limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "logs", "recent"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /access/logs/recent – limit=0 (below minimum)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('limit=0 is rejected (400 or 422)', function () {",
+                  "  pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent?limit=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "logs", "recent"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /access/check – expired card boundary",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Expired card returns 200 or 422', function () {",
+                  "  pm.expect([200, 422]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('[local] Expired card decision is DENY', function () {",
+                  "    if (pm.response.code === 200) {",
+                  "      pm.expect(pm.response.json().decisionType).to.eql('DENY');",
+                  "    }",
+                  "  });",
+                  "} else {",
+                  "  pm.test('[mock] Prism returns example regardless of business logic', function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-EXPIRED\",\n  \"gateId\": \"GATE-01\",\n  \"timestamp\": \"2020-01-01T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "GET /access/logs/recent – no limit param (default=10)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Default limit returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response array has at most default 10 items', function () {",
+                  "  const arr = pm.response.json();",
+                  "  pm.expect(arr.length).to.be.at.most(10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "logs", "recent"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05_Consumer_side_Smoke",
+      "item": [
+        {
+          "name": "Smoke – Core Business health reachable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// coreMockUrl tro den mock server cua Core Business (cung port 4010 neu dung chung mock)",
+                  "if (!pm.environment.get('coreMockUrl') || pm.environment.get('coreMockUrl').includes('{{')) {",
+                  "  pm.test('[skip] coreMockUrl chua duoc set trong environment', function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "  });",
+                  "} else {",
+                  "  pm.test('Core Business mock health endpoint responds 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "  });",
+                  "  pm.test('Health response has status field', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('status');",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{coreMockUrl}}/health",
+              "host": ["{{coreMockUrl}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Smoke – Core Business POST /access/check reachable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (!pm.environment.get('coreMockUrl') || pm.environment.get('coreMockUrl').includes('{{')) {",
+                  "  pm.test('[skip] coreMockUrl chua duoc set trong environment', function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "  });",
+                  "} else {",
+                  "  pm.test('Core Business /access/check responds (200 or 4xx)', function () {",
+                  "    pm.expect(pm.response.code).to.be.within(200, 499);",
+                  "  });",
+                  "  pm.test('Response is JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-001\",\n  \"gateId\": \"GATE-01\"\n}"
+            },
+            "url": {
+              "raw": "{{coreMockUrl}}/access/check",
+              "host": ["{{coreMockUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "Smoke – Core Business GET /policies/access/{policyId} reachable",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (!pm.environment.get('coreMockUrl') || pm.environment.get('coreMockUrl').includes('{{')) {",
+                  "  pm.test('[skip] coreMockUrl chua duoc set trong environment', function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "  });",
+                  "} else {",
+                  "  pm.test('Policy endpoint responds (200 or 404)', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "  });",
+                  "  pm.test('Response is JSON', function () {",
+                  "    pm.response.to.be.json;",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{coreMockUrl}}/policies/access/POLICY-01",
+              "host": ["{{coreMockUrl}}"],
+              "path": ["policies", "access", "POLICY-01"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06_Local_only_NonFunctional",
+      "item": [
+        {
+          "name": "POST /access/check – response time SLA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('Response time is below 1000ms on local service', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "  });",
+                  "} else {",
+                  "  pm.test('Skipped on mock environment (latency not meaningful)', function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cardId\": \"RFID-001\",\n  \"gateId\": \"GATE-01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/access/check",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "check"]
+            }
+          }
+        },
+        {
+          "name": "GET /access/logs/recent – response time SLA",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.environment.get('env') === 'local') {",
+                  "  pm.test('Log listing responds within 1000ms', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                  "  });",
+                  "} else {",
+                  "  pm.test('Skipped on mock environment', function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "  });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/access/logs/recent?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["access", "logs", "recent"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
