@@ -19,12 +19,12 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Lint OpenAPI contract
-        run: npx @redocly/cli lint contracts/openApi.yaml 2>&1 | tee reports/contract-lint-report.txt || true
+      - name: Lint openAPI contract
+        run: npx @redocly/cli lint contracts/openAPI.yaml 2>&1 | tee reports/contract-lint-report.txt || true
 
       - name: Start Prism mock server
         run: |
-          nohup ./node_modules/.bin/prism mock contracts/openApi.yaml --port 4010 --host 0.0.0.0 > prism.log 2>&1 &
+          nohup ./node_modules/.bin/prism mock contracts/openAPI.yaml --port 4010 --host 0.0.0.0 > prism.log 2>&1 &
           echo "Prism PID=$!"
 
       - name: Wait for mock server
